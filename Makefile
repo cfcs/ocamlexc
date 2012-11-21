@@ -1,27 +1,29 @@
 INSTALLDIR=/tmp/foobar
+WITH_TK=-package labltk
 
-
-OCAMLKLIBDIR=/usr/local/lib/ocaml/camltk/
-include $(OCAMLKLIBDIR)Makefile.camltk
+#OCAMLKLIBDIR=/usr/local/lib/ocaml/camltk/
+#include $(OCAMLKLIBDIR)Makefile.camltk
 
 
 # Compiler part
 BINDIR=
-CAMLC=$(BINDIR)ocamlc
-CAMLOPT=$(BINDIR)ocamlopt
-CAMLCP=$(BINDIR)ocamlcp
-CAMLDEP=$(BINDIR)ocamldep
+CAMLFIND=ocamlfind
+CAMLC=$(CAMLFIND) ocamlc
+CAMLOPT=$(CAMLFIND) ocamlopt
+CAMLCP=$(CAMLFIND) ocamlcp
+CAMLDEP=$(CAMLFIND) ocamldep
 CAMLLEX=$(BINDIR)ocamllex
 CAMLYACC=$(BINDIR)ocamlyacc
 
 
 
 # Flags part
+TKCOMPFLAGS = -package labltk
 INCLUDEDIRS = -I parsing/ -I utils/ -I typing/ -I toplevel/ -I batch/ \
 	-I interface/
 DEPFLAGS = $(INCLUDEDIRS)
-COMPFLAG = -w A-4-6-9 -warn-error A $(INCLUDEDIRS) $(TKCOMPFLAGS)
-LINKFLAG =
+COMPFLAG = -w A-4-6-9 $(INCLUDEDIRS) $(TKCOMPFLAGS)
+LINKFLAG = -linkpkg $(TKCOMPFLAGS)
 
 
 
@@ -241,8 +243,8 @@ link: $(LINKOBJS)
 	$(CAMLC) $(LINKFLAG) $(LINKOBJS) -o $(LINKNAME)
 
 interface: $(INTERFACEOBJS)
-	$(CAMLC) -custom unix.cma $(WITH_TK) $(INTERFACEOBJS) \
-		-cclib -lunix -o $(INTERFACENAME)
+	$(CAMLC) -linkpkg -package unix $(WITH_TK) $(INTERFACEOBJS) \
+		-o $(INTERFACENAME)
 
 
 
@@ -256,8 +258,8 @@ linkopt: $(LINKOBJS:.cmo=.cmx)
 	$(CAMLOPT) $(LINKFLAG) $(LINKOBJS:.cmo=.cmx) -o $(LINKNAME).opt
 
 interfaceopt: $(INTERFACEOBJS:.cmo=.cmx)
-	$(CAMLOPT) unix.cmxa $(WITH_TK_OPT) $(INTERFACEOBJS:.cmo=.cmx)\
-		-cclib -lunix -o $(INTERFACENAME).opt
+	$(CAMLOPT) -linkpkg -package unix $(WITH_TK_OPT) $(INTERFACEOBJS:.cmo=.cmx)\
+		-o $(INTERFACENAME).opt
 
 
 

@@ -321,22 +321,19 @@ and fake_pp_presence presence =
 let rec make_callback pcontext appr_to_expand ppf root_type _ =
   let widget = pcontext.Printcontext.widget in
   appr_to_expand.Typecore.phi_print <- not appr_to_expand.Typecore.phi_print ;
-  Text.configure widget [State Normal] ;
-  Text.delete widget (TextIndex
-		      (Mark
-		       ("START" ^ pcontext.Printcontext.mark_radical), []))
-                     (TextIndex
-		      (Mark
-		       ("STOP" ^ pcontext.Printcontext.mark_radical), [])) ;
+  Text.configure widget ~state:`Normal;
+  Text.delete widget ~start:(`Mark ("START" ^ pcontext.Printcontext.mark_radical),
+		             [])
+                     ~stop:(`Mark ("STOP" ^ pcontext.Printcontext.mark_radical),
+		            []) ;
   Text.mark_gravity_set widget
-                    ("STOP" ^ pcontext.Printcontext.mark_radical) Mark_Right ;
+                    ~mark:("STOP" ^ pcontext.Printcontext.mark_radical) ~direction:`Right ;
   (* Get the current indentation level *)
   let indentation =
     (match Text.index widget
-		      (TextIndex
-		       (Mark
-			("STOP" ^ pcontext.Printcontext.mark_radical), []))
-    with LineChar (_, c) -> c | _ -> assert false) in
+		      ~index:(`Mark ("STOP" ^ pcontext.Printcontext.mark_radical),
+			      [])
+    with `LineChar (_, c) -> c | _ -> assert false) in
   let pcontext' = { pcontext with
                     Printcontext.widget = widget ;
                     Printcontext.left_indent = indentation } in
@@ -345,10 +342,7 @@ let rec make_callback pcontext appr_to_expand ppf root_type _ =
   set_formatter_output_functions
             (fun s pos num ->
 	      Tklowprint.scan_string_at pcontext'
-			         (TextIndex
-				  (Mark
-				   ("STOP" ^
-				    pcontext'.Printcontext.mark_radical), []))
+		~index:(`Mark ("STOP" ^ pcontext'.Printcontext.mark_radical), [])
 			         s pos num)
             (fun () -> ()) ;
   (match root_type with
@@ -358,9 +352,10 @@ let rec make_callback pcontext appr_to_expand ppf root_type _ =
    | Printcontext.Phi phi_ty ->
        fprintf std_formatter "%a@?" (pp_phi_type pcontext') phi_ty) ;
   set_formatter_output_functions old_print old_flush ;
-  Text.configure widget [State Disabled] ;
-  Text.mark_gravity_set widget ("STOP" ^
-				pcontext'.Printcontext.mark_radical) Mark_Left
+  Text.configure widget ~state:`Disabled ;
+  Text.mark_gravity_set widget
+    ~mark:("STOP" ^ pcontext'.Printcontext.mark_radical)
+    ~direction:`Left
 
 
 
@@ -405,11 +400,11 @@ and ipp_ml_type pcontext prio ppf ml_ty =
 		(* Create the callback function *)
 		let callback = make_callback pcontext effect ppf root_type in
 		(* And now bind and configure the tag *)
-		Text.tag_configure pcontext.Printcontext.widget type_tag
-		                   [Foreground Red; Underline true] ;
-		Text.tag_bind pcontext.Printcontext.widget type_tag
-	                      [([], ButtonPressDetail 1)]
-                             (BindSet ([], callback))
+		Text.tag_configure pcontext.Printcontext.widget ~tag:type_tag
+		                   ~foreground:`Red ~underline:true;
+		Text.tag_bind pcontext.Printcontext.widget ~tag:type_tag
+	                      ~events:[`ButtonPressDetail 1]
+                             ~action:callback (*(BindSet ([], callback))*)
 	   end
        | Typecore.Tconstr (path, args, appr) ->
 	   let iter_ipp_ml_type =
@@ -445,12 +440,12 @@ and ipp_ml_type pcontext prio ppf ml_ty =
 		(* Create the callback function *)
 		let callback = make_callback pcontext appr ppf root_type in
 		(* And now bind and configure the tag *)
-		Text.tag_configure pcontext.Printcontext.widget type_tag
-		                   [Foreground (NamedColor "gray45");
-				    Underline true] ;
-		Text.tag_bind pcontext.Printcontext.widget type_tag
-	                      [([], ButtonPressDetail 1)]
-                             (BindSet ([], callback))
+		Text.tag_configure pcontext.Printcontext.widget ~tag:type_tag
+		  ~foreground:(`Color "gray45")
+		  ~underline:true ;
+		Text.tag_bind pcontext.Printcontext.widget ~tag:type_tag
+	          ~events:[`ButtonPressDetail 1]
+                  ~action:callback
 	   end
        | Typecore.Ttuple (args) ->
 	   let iter_ipp_ml_type =
@@ -527,12 +522,12 @@ and ipp_ml_type pcontext prio ppf ml_ty =
 		  (* Create the callback function *)
 		  let callback = make_callback pcontext appr ppf root_type in
 		  (* And now bind and configure the tag *)
-		  Text.tag_configure pcontext.Printcontext.widget type_tag
-		                     [Foreground (NamedColor "gray45");
-			  	      Underline true] ;
-		  Text.tag_bind pcontext.Printcontext.widget type_tag
-	                        [([], ButtonPressDetail 1)]
-				(BindSet ([], callback))
+		  Text.tag_configure pcontext.Printcontext.widget ~tag:type_tag
+		    ~foreground:(`Color "gray45")
+		    ~underline:true ;
+		  Text.tag_bind pcontext.Printcontext.widget ~tag:type_tag
+	                        ~events:[`ButtonPressDetail 1]
+				~action:callback
 	     end
 	 | Typecore.Ttuple (args) ->
 	     let iter_ipp_ml_type =
@@ -607,12 +602,12 @@ and iexplain_ml_type_abbrev pcontext prio ppf ml_ty =
 	       (* Create the callback function *)
 	       let callback = make_callback pcontext appr ppf root_type in
 	       (* And now bind and configure the tag *)
-	       Text.tag_configure pcontext.Printcontext.widget type_tag
-		                  [Foreground (NamedColor "gray45");
-		 	           Underline true] ;
-	       Text.tag_bind pcontext.Printcontext.widget type_tag
-	                     [([], ButtonPressDetail 1)]
-			      (BindSet ([], callback))
+	       Text.tag_configure pcontext.Printcontext.widget ~tag:type_tag
+		 ~foreground:(`Color "gray45")
+	         ~underline:true ;
+	       Text.tag_bind pcontext.Printcontext.widget ~tag:type_tag
+	         ~events:[`ButtonPressDetail 1]
+		 ~action:callback
 	  end
       | Typecore.Ttuple (args) ->
 	  let iter_ipp_ml_type =

@@ -18,7 +18,7 @@ type root_type =
 ;;
 
 type print_context = {
-    widget : Widget.widget ;         (* Text widget where to display *)
+    widget : Widget.text Widget.widget;         (* Text widget where to display *)
     root_type : root_type ;          (* Type currently printed *)
     left_indent : int ;  (* Left offset for indenting when expanding the *)
                          (* type expression text. In fact, it represent  *)

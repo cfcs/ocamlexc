@@ -19,10 +19,10 @@ open Format ;;
 
 let tk_report_error msg =
  Wm.title_set Global.top_w "Error report" ;
- let label_w = Label.create Global.top_w [Text msg] in
- let button_w = Button.create Global.top_w [Text "Quit";
-	 				    Command (fun _ -> exit (-1))] in
- pack [label_w; button_w] [] ;
+ let label_w = Label.create Global.top_w ~text:msg in
+ let button_w = Button.create Global.top_w ~text:"Quit"
+	 				   ~command:(fun _ -> exit (-1)) in
+ pack [Widget.coe label_w; Widget.coe button_w] ;
  mainLoop ()
 ;;
 

@@ -11,7 +11,7 @@
 
 
 
-open Tk ;;
+open Labltk ;;
 open Format ;;
 
 
@@ -25,8 +25,10 @@ let scan_string pcontext s pos num =
    match s.[i] with
     | '\006' ->
 	(* Begin of tag *)
-	Text.insert text_w (TextIndex (End, []))
-                    (String.sub s !start (i - !start)) [!tag_buffer] ;
+	Text.insert ~index:(`End, [])
+                    ~text:(String.sub s !start (i - !start))
+                    ~tags:[!tag_buffer]
+                    text_w ;
 	tag_buffer := "" ;
 	tag_scan_flag := true ;
     | '\007' ->
@@ -37,21 +39,21 @@ let scan_string pcontext s pos num =
 	(* End of mark *)
 	tag_scan_flag := false ;
 	start := i + 1 ;
-	Text.mark_set text_w !tag_buffer (TextIndex (Mark "insert", [])) ;
-	Text.mark_gravity_set text_w !tag_buffer Mark_Left
+	Text.mark_set text_w ~mark:!tag_buffer ~index:(`Mark "insert", []);
+	Text.mark_gravity_set text_w ~mark:!tag_buffer ~direction:`Left
     | whatever ->
 	if !tag_scan_flag then
 	  tag_buffer := !tag_buffer ^ (Char.escaped whatever)
  done ;
  if not !tag_scan_flag then
-   Text.insert text_w (TextIndex (End, []))
-               (String.sub s !start (num - !start)) [!tag_buffer]
+   Text.insert text_w ~index:(`End, [])
+     ~text:(String.sub s !start (num - !start)) ~tags:[!tag_buffer]
 ;;
 
 
 
 (* Used for pretty-printing a type component in a callback *)
-let scan_string_at pcontext index s pos num =
+let scan_string_at pcontext ~index s pos num =
  let text_w = pcontext.Printcontext.widget in
  let tag_buffer = pcontext.Printcontext.tag_buffer in
  let tag_scan_flag = pcontext.Printcontext.tag_scan_flag in
@@ -61,8 +63,8 @@ let scan_string_at pcontext index s pos num =
    match s.[i] with
     | '\006' ->
 	(* Begin of tag *)
-	Text.insert text_w index
-                    (String.sub s !start (i - !start)) [!tag_buffer] ;
+	Text.insert text_w ~index
+                    ~text:(String.sub s !start (i - !start)) ~tags:[!tag_buffer] ;
 	tag_buffer := "" ;
 	tag_scan_flag := true
     | '\007' ->
@@ -73,19 +75,20 @@ let scan_string_at pcontext index s pos num =
 	(* End of mark *)
 	tag_scan_flag := false ;
 	start := i + 1 ;
-	Text.mark_set text_w !tag_buffer (TextIndex (Mark "insert", [])) ;
-	Text.mark_gravity_set text_w !tag_buffer Mark_Left
+	Text.mark_set text_w ~mark:!tag_buffer ~index:(`Mark "insert", []) ;
+	Text.mark_gravity_set text_w ~mark:!tag_buffer ~direction:`Left
     | '\010' ->
-	Text.insert text_w index
-                    (String.sub s !start (i - !start)) [!tag_buffer] ;
+	Text.insert text_w ~index
+                    ~text:(String.sub s !start (i - !start)) ~tags:[!tag_buffer] ;
 	let pad = String.make left_indent ' ' in
-	Text.insert text_w index ("\n"^pad) [!tag_buffer] ;
+	Text.insert text_w ~index ~text:("\n"^pad) ~tags:[!tag_buffer] ;
         start := i + 1
     | whatever ->
 	if !tag_scan_flag then
 	  tag_buffer := !tag_buffer ^ (Char.escaped whatever)
  done ;
  if not !tag_scan_flag then
-   Text.insert text_w index
-               (String.sub s !start (num - !start)) [!tag_buffer]
+   Text.insert text_w ~index
+               ~text:(String.sub s !start (num - !start))
+               ~tags:[!tag_buffer]
 ;;

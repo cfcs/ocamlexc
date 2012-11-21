@@ -170,34 +170,41 @@ let create_mark_radical =
 
 
 let create_popup parent_w expression =
-  let new_window = Toplevel.create parent_w [] in
+  let new_window = Toplevel.create parent_w in
   Wm.title_set new_window "Zoom" ;
-  let label0_w = Label.create new_window [Text "Type of expression"] in
+  let label0_w = Label.create new_window ~text:"Type of expression" in
   let text0_w =
-    Text.create new_window [Background (NamedColor "LightSteelBlue");
-		     Cursor (XCursor "hand2"); State Disabled; TextHeight 5] in
-  let label1_w = Label.create new_window [Text "Effect of expression"] in
+    Text.create new_window ~background:(`Color "LightSteelBlue")
+      ~cursor:(`Xcursor "hand2")
+      ~state:`Disabled
+      ~height:5
+  in
+  let label1_w = Label.create new_window ~text:"Effect of expression" in
   let text1_w =
-    Text.create new_window [Background (NamedColor "LightSteelBlue");
-		     Cursor (XCursor "hand2"); State Disabled; TextHeight 5] in
+    Text.create new_window ~background:(`Color "LightSteelBlue")
+      ~cursor:(`Xcursor "hand2")
+      ~state:`Disabled
+      ~height:5
+  in
   (* Button to close the window *)
   let butt0_w = Button.create new_window
-                              [Text "Close" ;
-			       Command (fun _ -> destroy new_window)] in
+                              ~text:"Close"
+			      ~command:(fun _ -> destroy new_window)
+  in
   (* Right-clic shortcut to close the window *)
-  bind text0_w [([], ButtonPressDetail 3) ]
-       (BindSet ([], fun _ -> destroy new_window)) ;
-  bind text1_w [([], ButtonPressDetail 3) ]
-       (BindSet ([], fun _ -> destroy new_window)) ;
+  bind text0_w ~events:[`ButtonPressDetail 3]
+       ~action:(fun _ -> destroy new_window) ;
+  bind text1_w ~events:[`ButtonPressDetail 3]
+       ~action:(fun _ -> destroy new_window) ;
   (* Create the tag for "where" construction *)
-  Text.tag_add_char text0_w "WHERE" (TextIndex (End, [])) ;
-  Text.tag_configure text0_w "WHERE" [Background White] ;
+  Text.tag_add_char text0_w ~tag:"WHERE" ~index:(`End, []) ;
+  Text.tag_configure text0_w ~tag:"WHERE" ~background:`White ;
   (* Display the whole stuff *)
-  pack [label0_w] [Side Side_Top; Fill Fill_Both] ;
-  pack [text0_w] [Side Side_Top; Expand true; Fill Fill_Both] ;
-  pack [label1_w] [Side Side_Top; Fill Fill_Both] ;
-  pack [text1_w] [Side Side_Top; Expand true; Fill Fill_Both] ;
-  pack [butt0_w] [Fill Fill_Both] ;
+  pack [label0_w] ~side:`Top ~fill:`Both ;
+  pack [text0_w]  ~side:`Top ~expand:true ~fill:`Both ;
+  pack [label1_w] ~side:`Top ~fill:`Both ;
+  pack [text1_w]  ~side:`Top ~expand:true ~fill:`Both ;
+  pack [butt0_w]  ~fill:`Both ;
   (* Print expression type in upper window *)
   let ty_expr = expression.Typedtree.exp_type in
   let mark_r = create_mark_radical () in
@@ -214,12 +221,12 @@ let create_popup parent_w expression =
       (fun s pos num ->
 	Tklowprint.scan_string pcontext s pos num)
       (fun () -> ()) ;
-  Text.configure text0_w [State Normal] ;
+  Text.configure text0_w ~state:`Normal ;
   pp_print_as std_formatter 0 ("\006START"^mark_r^"\008") ;
   fprintf std_formatter "%a@\n@." (Tkprinttypes.pp_ml_type pcontext) ty_expr ;
   pp_print_as std_formatter 0 ("\006STOP"^mark_r^"\008") ;
   fprintf std_formatter "@?" ;
-  Text.configure text0_w [State Disabled] ;
+  Text.configure text0_w ~state:`Disabled ;
   pp_set_formatter_output_functions std_formatter old_print old_flush ;
   (* Print expression effect in lower window *)
   let effect_expr = expression.Typedtree.exp_exn in
@@ -237,7 +244,7 @@ let create_popup parent_w expression =
       (fun s pos num ->
 	Tklowprint.scan_string pcontext s pos num)
       (fun () -> ()) ;
-  Text.configure text1_w [State Normal] ;
+  Text.configure text1_w ~state:`Normal ;
   pp_print_as std_formatter 0 ("\006START"^mark_r^"\008") ;
   (* Make the effect printable *)
   effect_expr.Typecore.phi_print <- true ;
@@ -245,7 +252,7 @@ let create_popup parent_w expression =
           (Tkprinttypes.pp_phi_type pcontext) effect_expr ;
   pp_print_as std_formatter 0 ("\006STOP"^mark_r^"\008") ;
   fprintf std_formatter "@?" ;
-  Text.configure text1_w [State Disabled] ;
+  Text.configure text1_w ~state:`Disabled ;
   pp_set_formatter_output_functions std_formatter old_print old_flush
 ;;
 
@@ -256,12 +263,12 @@ let make_callback widget lines_mappping syntax_tree _ =
   try
    begin
    let (line, char) =
-     (match Text.index widget (TextIndex (TagFirst "sel", [])) with
-       LineChar (l, c) -> (l - 1, c) | _ -> assert false) in
+     (match Text.index widget ~index:(`Tagfirst "sel", []) with
+       `LineChar (l, c) -> (l - 1, c) | _ -> assert false) in
    let char_start = line_column_to_char_number lines_mappping line char in
    let (line', char') =
-     (match Text.index widget (TextIndex (TagLast "sel", [])) with
-       LineChar (l, c) -> (l - 1, c) | _ -> assert false) in
+     (match Text.index widget ~index:(`Taglast "sel", []) with
+       `LineChar (l, c) -> (l - 1, c) | _ -> assert false) in
    let char_stop = line_column_to_char_number lines_mappping line' char' in
    (* Find the expression associated to the character location *)
    try find_loc_structure char_start char_stop syntax_tree ; Bell.ring ()
@@ -275,11 +282,12 @@ let make_callback widget lines_mappping syntax_tree _ =
                                  (expr.Typedtree.exp_loc.Location.loc_end) in
      Text.tag_delete widget ["EXPR"] ;
      (* Don't forget that lines are numbered from 1 in Tk *)
-     Text.tag_add widget "EXPR" (TextIndex (LineChar (start_l+1, start_c), []))
-                                (TextIndex (LineChar (stop_l+1, stop_c), [])) ;
-     Text.tag_configure widget "EXPR"
-                        [Relief Raised; BorderWidth (Pixels 1);
-       	       	         Background Red] ;
+     Text.tag_add widget ~tag:"EXPR" ~start:(`Linechar (start_l+1, start_c), [])
+                                ~stop:(`Linechar (stop_l+1, stop_c), []) ;
+     Text.tag_configure widget ~tag:"EXPR"
+       ~relief:`Raised
+       ~borderwidth:1
+       ~background:`Red ;
      (* Pop a window with expression node information *)
      create_popup widget expr
    end
@@ -300,11 +308,11 @@ let load_source widget filename syntax_tree =
    current_mapping := !char_of_begin_line :: !current_mapping ;
    let l = (input_line in_channel)^"\n" in
    char_of_begin_line := !char_of_begin_line + String.length l ;
-   Text.insert widget (TextIndex (End, [])) l []
+   Text.insert widget ~index:(`End, []) ~text:l
    done
  with End_of_file ->
    close_in in_channel ;
    let array_of_list = Array.of_list (List.rev !current_mapping) in
    let callback = make_callback widget array_of_list syntax_tree in
-   bind widget [([], ButtonReleaseDetail 1)] (BindSet ([], callback))
+   bind widget ~events:[`ButtonReleaseDetail 1] ~action:callback
 ;;

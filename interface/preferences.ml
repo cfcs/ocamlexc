@@ -64,7 +64,7 @@ let gethomedir () =
 
 
 let tk_color_of_int i =
-  NamedColor (Printf.sprintf "#%06x" i)
+  `Color (Printf.sprintf "#%06x" i)
 ;;
 
 
@@ -122,38 +122,68 @@ let open_pref_window parent_w =
     where_tag_color = 0 ; background_tag_color = 0 } in
   copy_prefs global_prefs local_prefs ;
   (* Now the graphical stuff *)
-  let requester_w = Toplevel.create parent_w [] in
+  let requester_w = Toplevel.create parent_w in
   Wm.title_set requester_w "Preferences" ;
-  let frame0_w = Frame.create requester_w [] in
-  let frame1_w = Frame.create requester_w [Relief Raised;
-					BorderWidth (Pixels 2)] in
-  let frame2_w = Frame.create frame0_w [Relief Raised;
-					BorderWidth (Pixels 2)] in
-  let frame3_w = Frame.create frame0_w [Relief Raised;
-					BorderWidth (Pixels 2)] in
-  let frame4_w = Frame.create frame3_w [] in
+  let frame0_w = Frame.create requester_w in
+  let frame1_w = Frame.create requester_w
+    ~relief:`Raised
+    ~borderwidth:2
+  in
+  let frame2_w = Frame.create frame0_w
+    ~relief:`Raised
+    ~borderwidth:2
+  in
+  let frame3_w = Frame.create frame0_w
+    ~relief:`Raised
+    ~borderwidth:2
+  in
+  let frame4_w = Frame.create frame3_w in
 
-  let var0_w = Textvariable.create_temporary frame0_w in
-  let radiob0_w = Radiobutton.create frame2_w [Text "Val"; Variable var0_w;
-					       Value "val" ] in
-  let radiob1_w = Radiobutton.create frame2_w [Text "Type"; Variable var0_w;
-					       Value "type"] in
-  let radiob2_w = Radiobutton.create frame2_w [Text "Module"; Variable var0_w;
-					       Value "module"] in
-  let radiob3_w = Radiobutton.create frame2_w [Text "Constructor";
-    				     Variable var0_w; Value "constructor"] in
-  let radiob4_w = Radiobutton.create frame2_w [Text "Label"; Variable var0_w;
-					       Value "label" ] in
-  let radiob5_w = Radiobutton.create frame2_w [Text "Where"; Variable var0_w;
-					       Value "where" ] in
-  let radiob6_w = Radiobutton.create frame2_w [Text "Background";
-				     Variable var0_w; Value "background"] in
-  let canvas0_w = Canvas.create frame3_w [Width (Pixels 50);
-					  BorderWidth (Pixels 3);
-					  Height (Pixels 50); Relief Raised] in
-  let scaler_w = Scale.create frame4_w [From 0.0; To 255.0; Digits 0] in
-  let scaleg_w = Scale.create frame4_w [From 0.0; To 255.0; Digits 0] in
-  let scaleb_w = Scale.create frame4_w [From 0.0; To 255.0; Digits 0] in
+  let var0_w = Textvariable.create ~on:frame0_w () in
+  let radiob0_w = Radiobutton.create frame2_w
+    ~text:"Val"
+    ~variable:var0_w
+    ~value:"val"
+  in
+  let radiob1_w = Radiobutton.create frame2_w
+    ~text:"Type"
+    ~variable:var0_w
+    ~value:"type"
+  in
+  let radiob2_w = Radiobutton.create frame2_w
+    ~text:"Module"
+    ~variable:var0_w 
+    ~value:"module"
+  in
+  let radiob3_w = Radiobutton.create frame2_w
+    ~text:"Constructor"
+    ~variable:var0_w
+    ~value:"constructor"
+  in
+  let radiob4_w = Radiobutton.create frame2_w
+    ~text:"Label"
+    ~variable:var0_w 
+    ~value:"label"
+  in
+  let radiob5_w = Radiobutton.create frame2_w
+    ~text:"Where"
+    ~variable:var0_w 
+    ~value:"where"
+  in
+  let radiob6_w = Radiobutton.create frame2_w
+    ~text:"Background"
+    ~variable:var0_w
+    ~value:"background"
+  in
+  let canvas0_w = Canvas.create frame3_w
+    ~width:50
+    ~borderwidth:3
+    ~height:50
+    ~relief:`Raised
+  in
+  let scaler_w = Scale.create frame4_w ~min:0.0 ~max:255.0 ~digits:0 in
+  let scaleg_w = Scale.create frame4_w ~min:0.0 ~max:255.0 ~digits:0 in
+  let scaleb_w = Scale.create frame4_w ~min:0.0 ~max:255.0 ~digits:0 in
   (* Callback for the scalers *)
   let scale_callback _ =
     let col = (truncate (Scale.get scaler_w)) lsl 16 +
@@ -171,10 +201,10 @@ let open_pref_window parent_w =
       | "background" -> local_prefs.background_tag_color <- col
       | _ -> ()) ;
     if current_selection <> "" then
-      Canvas.configure canvas0_w [Background coltxt] in
-  Scale.configure scaler_w [ScaleCommand scale_callback] ;
-  Scale.configure scaleg_w [ScaleCommand scale_callback] ;
-  Scale.configure scaleb_w [ScaleCommand scale_callback] ;
+      Canvas.configure canvas0_w ~background:coltxt in
+  Scale.configure scaler_w ~command:scale_callback ;
+  Scale.configure scaleg_w ~command:scale_callback ;
+  Scale.configure scaleb_w ~command:scale_callback ;
   (* Callback for the radio buttons *)
   let radio_callback _ =
     let col = (match Textvariable.get var0_w with
@@ -193,8 +223,8 @@ let open_pref_window parent_w =
     Scale.set scaler_w r ;
     Scale.set scaleg_w g ;
     Scale.set scaleb_w b ;
-    Canvas.configure canvas0_w [Background coltxt] in
-  List.iter (fun rb -> Radiobutton.configure rb [Command radio_callback])
+    Canvas.configure canvas0_w ~background:coltxt in
+  List.iter (fun rb -> Radiobutton.configure rb ~command:radio_callback)
             [radiob0_w;radiob1_w;radiob2_w;radiob3_w;radiob4_w;radiob5_w;
 	     radiob6_w] ;
   (* Callback for the buttons *)
@@ -205,13 +235,14 @@ let open_pref_window parent_w =
     copy_prefs local_prefs global_prefs ;
     if not (save_preferences ()) then
       begin
-      let error_w = Toplevel.create parent_w [] in
+      let error_w = Toplevel.create parent_w in
       Wm.title_set error_w "Error report" ;
-      let label_w = Label.create error_w [Text ("Can't save prefs in "^
-                                               "/tmp/.ocamlexcrc")] in
-      let button_w = Button.create error_w [Text "So bad";
-	 			  Command (fun _ -> destroy error_w)] in
-      pack [label_w; button_w] []
+      let label_w = Label.create error_w
+        ~text:"Can't save prefs in /tmp/.ocamlexcrc" in
+      let button_w = Button.create error_w ~text:"So bad"
+	 			  ~command:(fun _ -> destroy error_w)
+      in
+      pack [Widget.coe label_w; Widget.coe button_w]
       end ;
     destroy requester_w in
   let reset_callback _ =
@@ -222,20 +253,20 @@ let open_pref_window parent_w =
     Scale.set scaler_w 0.0 ;
     Scale.set scaleg_w 0.0 ;
     Scale.set scaleb_w 0.0 in
-  let button0_w = Button.create frame1_w [Text "Apply";
-					  Command apply_callback] in
-  let button1_w = Button.create frame1_w [Text "Save";
-					  Command save_callback] in
-  let button2_w = Button.create frame1_w [Text "Cancel";
-				  Command (fun _ -> destroy requester_w)] in
-  let button3_w = Button.create frame1_w [Text "Reset";
-					  Command reset_callback] in
-  pack [frame0_w; frame1_w] [Side Side_Top; Fill Fill_X] ;
-  pack [frame2_w; frame3_w] [Fill Fill_Y; Side Side_Left] ;
-  pack [frame4_w] [] ;
+  let button0_w = Button.create frame1_w ~text:"Apply"
+					 ~command:apply_callback in
+  let button1_w = Button.create frame1_w ~text:"Save"
+					 ~command:save_callback in
+  let button2_w = Button.create frame1_w ~text:"Cancel"
+				 ~command:(fun _ -> destroy requester_w) in
+  let button3_w = Button.create frame1_w ~text:"Reset"
+					 ~command:reset_callback in
+  pack [frame0_w; frame1_w] ~side:`Top ~fill:`X ;
+  pack [frame2_w; frame3_w] ~fill:`Y ~side:`Left ;
+  pack [frame4_w] ;
   pack [radiob0_w;radiob1_w;radiob2_w;radiob3_w;radiob4_w;radiob5_w;
-        radiob6_w] [Side Side_Top; Anchor W] ;
-  pack [scaler_w; scaleg_w; scaleb_w] [Side Side_Left] ;
-  pack [canvas0_w] [Side Side_Left; Fill Fill_X; Expand true] ;
-  pack [button0_w;button1_w;button2_w;button3_w] [Side Side_Left;Expand true]
+        radiob6_w] ~side:`Top ~anchor:`W ;
+  pack [scaler_w; scaleg_w; scaleb_w] ~side:`Left ;
+  pack [canvas0_w] ~side:`Left ~fill:`X ~expand:true ;
+  pack [button0_w;button1_w;button2_w;button3_w] ~side:`Left ~expand:true
 ;;
