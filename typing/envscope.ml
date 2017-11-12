@@ -319,7 +319,7 @@ let rec assoc_check_stamp ident = function
 (* Loads scope info from the external compilation units called 'module_name' *)
 let input module_name =
  (* Creates the name of the corresponding file *)
- let persist_name = (String.uncapitalize  module_name) ^ ".cme" in
+ let persist_name = (String.uncapitalize_ascii  module_name) ^ ".cme" in
  (* First try current directory, then stdlib directory *)
  let in_channel = Stdlibpath.open_in_with_path persist_name in
  let (_,        (* Source file of the module *)

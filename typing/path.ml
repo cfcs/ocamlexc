@@ -25,7 +25,7 @@ type t =
 let rec equal p1 p2 =
   match (p1, p2) with
    | (Pident id1, Pident id2) -> Ident.equal id1 id2
-   | (Pdot(r1, field1), Pdot(r2, field2)) -> equal r1 r2 & field1 = field2
+   | (Pdot(r1, field1), Pdot(r2, field2)) -> equal r1 r2 && field1 = field2
    | (_, _) -> false
 ;;
 

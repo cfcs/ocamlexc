@@ -12,7 +12,6 @@
 
 
 open Labltk ;;
-open Format ;;
 
 
 (* Used for pretty-printing a whole signature *)

@@ -46,7 +46,7 @@ let finish_unification (mod_ident, instanciations) =
 let treat_file filename =
  fprintf std_formatter "...Loading file %s\n" filename ;
  let module_name =
-   String.capitalize (Filename.basename (Filename.chop_extension filename)) in
+   String.capitalize_ascii (Filename.basename (Filename.chop_extension filename)) in
  let module_ident = Ident.create_global module_name in
  let in_channel = Stdlibpath.open_in_with_path filename in
  let (
@@ -83,7 +83,7 @@ let final_result () =
       fprintf std_formatter "*********************************\n" ;
       fprintf std_formatter "*** %s *** \n" mod_name ;
       fprintf std_formatter "*********************************\n\n" ;
-      let mod_ident = Ident.create_global (String.capitalize mod_name) in
+      let mod_ident = Ident.create_global (String.capitalize_ascii mod_name) in
       let mod_path = Path.Pident mod_ident in
       let mod_sig = Envtype.find_module mod_path !Envtype.global_type_env in
       fprintf std_formatter "%a\n" Printmod.pp_module_type mod_sig)

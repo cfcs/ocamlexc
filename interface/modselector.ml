@@ -61,7 +61,7 @@ let create parent_w =
  Scrollbar.configure scroll0_w ~command:(Listbox.yview listb0_w) ;
  (* Initialize listbox content *)
  let mod_names = List.map
-   (fun n -> String.capitalize (Filename.basename (Filename.chop_extension n)))
+   (fun n -> String.capitalize_ascii (Filename.basename (Filename.chop_extension n)))
    !Global.link_files in
  Listbox.insert listb0_w `End mod_names ;
  (* Set bindings for the listbox *)

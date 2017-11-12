@@ -194,7 +194,7 @@ val circularize_record_labels:
   ('a * 'b * Typecore.ml_type_expr * 'c) list ->
   ('a * 'b * Typecore.ml_type_expr * 'c) list
 *)
-let rec circularize_record_labels type_decls label_infos =
+let circularize_record_labels type_decls label_infos =
  Typecore.begin_definition () ;
  (* Cree la liste d'accus *)
  let accu_list =

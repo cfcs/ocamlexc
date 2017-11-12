@@ -43,14 +43,14 @@ let ml_filename_from_cme_filename filename =
 (* Then it removes the extension and capitalize the remaining string.  *)
 let module_name_from_ml_filename filename =
   if Filename.check_suffix filename ".ml" then
-    String.capitalize (Filename.chop_extension (Filename.basename filename))
+    String.capitalize_ascii (Filename.chop_extension (Filename.basename filename))
   else raise (Not_ml_file filename)
 ;;
 
 
 let module_name_from_cme_filename filename =
   if Filename.check_suffix filename ".cme" then
-    String.capitalize (Filename.chop_extension (Filename.basename filename))
+    String.capitalize_ascii (Filename.chop_extension (Filename.basename filename))
   else raise (Not_cme_file filename)
 ;;
 
@@ -59,5 +59,5 @@ let module_name_from_cme_filename filename =
 (* Create the ending filename corresponding to a module name.  *)
 (* This does not add any file-system path to this ending name. *)
 let cme_filename_from_module_name module_name =
-  (String.uncapitalize  module_name) ^ ".cme"
+  (String.uncapitalize_ascii  module_name) ^ ".cme"
 ;;

@@ -93,7 +93,7 @@ let keyword_table =
 
 (* To buffer string literals *)
 
-let initial_string_buffer = String.create 256
+let initial_string_buffer = Bytes.create 256
 let string_buff = ref initial_string_buffer
 let string_index = ref 0
 

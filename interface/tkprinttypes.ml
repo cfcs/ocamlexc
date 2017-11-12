@@ -13,7 +13,6 @@
 
 
 open Format ;;
-open Tk ;;
 
 
 (* Bool telling if we must force "empty" vrs to appear in types *)

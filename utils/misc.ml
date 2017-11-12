@@ -28,7 +28,7 @@ let rec map_end f l1 l2 =
 let rec for_all2 pred l1 l2 =
   match (l1, l2) with
     ([], []) -> true
-  | (hd1::tl1, hd2::tl2) -> pred hd1 hd2 & for_all2 pred tl1 tl2
+  | (hd1::tl1, hd2::tl2) -> pred hd1 hd2 && for_all2 pred tl1 tl2
   | (_, _) -> false
 
 let rec filter pred =
@@ -43,7 +43,7 @@ let rec filter pred =
 
 let rec mem_assq x = function
     [] -> false
-  | (a,_)::l -> a == x or mem_assq x l
+  | (a,_)::l -> a == x || mem_assq x l
 
 let rec replicate_list elem n =
   if n <= 0 then [] else elem :: replicate_list elem (n-1)
@@ -83,14 +83,14 @@ let create_hashtable size init =
 (* File copy *)
 
 let copy_file ic oc =
-  let buff = String.create 0x1000 in
+  let buff = Bytes.create 0x1000 in
   let rec copy () =
     let n = input ic buff 0 0x1000 in
     if n = 0 then () else (output oc buff 0 n; copy())
   in copy()
 
 let copy_file_chunk ic oc len =
-  let buff = String.create 0x1000 in
+  let buff = Bytes.create 0x1000 in
   let rec copy n =
     if n <= 0 then () else begin
       let r = input ic buff 0 (min n 0x1000) in

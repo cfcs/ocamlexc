@@ -14,7 +14,6 @@
 
 
 open Format ;;
-open Tk ;;
 
 
 

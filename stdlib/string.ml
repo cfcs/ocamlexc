@@ -1,173 +1,197 @@
-(***********************************************************************)
-(*                                                                     *)
-(*                           Objective Caml                            *)
-(*                                                                     *)
-(*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         *)
-(*                                                                     *)
-(*  Copyright 1996 Institut National de Recherche en Informatique et   *)
-(*  Automatique.  Distributed only by permission.                      *)
-(*                                                                     *)
-(***********************************************************************)
+(**************************************************************************)
+(*                                                                        *)
+(*                                 OCaml                                  *)
+(*                                                                        *)
+(*           Damien Doligez, projet Gallium, INRIA Rocquencourt           *)
+(*                                                                        *)
+(*   Copyright 2014 Institut National de Recherche en Informatique et     *)
+(*     en Automatique.                                                    *)
+(*                                                                        *)
+(*   All rights reserved.  This file is distributed under the terms of    *)
+(*   the GNU Lesser General Public License version 2.1, with the          *)
+(*   special exception on linking described in the file LICENSE.          *)
+(*                                                                        *)
+(**************************************************************************)
 
-(* $Id: string.ml,v 1.5 1998/10/19 14:19:28 pessaux Exp $ *)
+(* String operations, based on byte sequence operations *)
 
-(* String operations *)
+(* WARNING: Some functions in this file are duplicated in bytes.ml for
+   efficiency reasons. When you modify the one in this file you need to
+   modify its duplicate in bytes.ml.
+   These functions have a "duplicated" comment above their definition.
+*)
 
-external length : string[`a] <[`b]-> int[_] = "%string_length" ;;
-external get : string[`a] <[`b]-> int[`c]
-               <[__Invalid_argument14(string[string_get:Pre;`d]);`e]->
-               char[_] = "%string_safe_get" ;;
-external set : string[`a] <[`b]-> int[`c] <[`d]-> char[`e]
-               <[__Invalid_argument14(string[string_set:Pre;`f]);`g]->
-               unit[() :Pre; `h] = "%string_safe_set" ;;
-external create : int[`a] <[`b]-> string[_] = "create_string" ;;
-external unsafe_get : string[`a] <[`b]-> int[`c] <[`d]-> char[_]
-                       = "%string_unsafe_get"
-external unsafe_set : string[`a] <[`b]-> int[`c] <[`d]-> char[`e]
-                      <[`f]-> unit[() :Pre; `g] = "%string_unsafe_set" ;;
-external unsafe_blit : string[`a] <[`b]-> int[`c] <[`d]->
-                       string[`e] <[`f] -> int[`g] <[`h]->
-                       int[`i] <[`j]-> unit[() :Pre; `k]
-                     = "blit_string" "noalloc" ;;
-external unsafe_fill : string[`a] <[`b]-> int[`c] <[`d]-> int[`e] <[`f]->
-                       char[`g] <[`h]-> unit[() :Pre; `i]
-                     = "fill_string" "noalloc" ;;
+external length : string -> int = "%string_length"
+external get : string -> int -> char = "%string_safe_get"
+external set : bytes -> int -> char -> unit = "%string_safe_set"
+external create : int -> bytes = "caml_create_string"
+external unsafe_get : string -> int -> char = "%string_unsafe_get"
+external unsafe_set : bytes -> int -> char -> unit = "%string_unsafe_set"
+external unsafe_blit : string -> int ->  bytes -> int -> int -> unit
+                     = "caml_blit_string" [@@noalloc]
+external unsafe_fill : bytes -> int -> int -> char -> unit
+                     = "caml_fill_string" [@@noalloc]
+
+module B = Bytes
+
+let bts = B.unsafe_to_string
+let bos = B.unsafe_of_string
 
 let make n c =
-  let s = create n in
-  unsafe_fill s 0 n c;
-  s ;;
-
+  B.make n c |> bts
+let init n f =
+  B.init n f |> bts
 let copy s =
-  let len = length s in
-  let r = create len in
-  unsafe_blit s 0 r 0 len;
-  r ;;
-
+  B.copy (bos s) |> bts
 let sub s ofs len =
-  if ofs < 0 or len < 0 or ofs + len > length s
-  then invalid_arg "String.sub"
-  else begin
-    let r = create len in
-    unsafe_blit s ofs r 0 len;
-    r
-  end ;;
+  B.sub (bos s) ofs len |> bts
+let fill =
+  B.fill
+let blit =
+  B.blit_string
 
-let fill s ofs len c =
-  if ofs < 0 or len < 0 or ofs + len > length s
-  then invalid_arg "String.fill"
-  else unsafe_fill s ofs len c ;;
+let ensure_ge x y = if x >= y then x else invalid_arg "String.concat"
 
-let blit s1 ofs1 s2 ofs2 len =
-  if len < 0 or ofs1 < 0 or ofs1 + len > length s1
-             or ofs2 < 0 or ofs2 + len > length s2
-  then invalid_arg "String.blit"
-  else unsafe_blit s1 ofs1 s2 ofs2 len ;;
+let rec sum_lengths acc seplen = function
+  | [] -> acc
+  | hd :: [] -> length hd + acc
+  | hd :: tl -> sum_lengths (ensure_ge (length hd + seplen + acc) acc) seplen tl
 
-let concat sep l =
-  match l with
-    [] -> ""
+let rec unsafe_blits dst pos sep seplen = function
+    [] -> dst
+  | hd :: [] ->
+    unsafe_blit hd 0 dst pos (length hd); dst
   | hd :: tl ->
-      let num = ref 0 and len = ref 0 in
-      List.iter (fun s -> incr num; len := !len + length s) l;
-      let r = create (!len + length sep * (!num - 1)) in
-      unsafe_blit hd 0 r 0 (length hd);
-      let pos = ref(length hd) in
-      List.iter
-        (fun s ->
-          unsafe_blit sep 0 r !pos (length sep);
-          pos := !pos + length sep;
-          unsafe_blit s 0 r !pos (length s);
-          pos := !pos + length s)
-        tl;
-      r ;;
+    unsafe_blit hd 0 dst pos (length hd);
+    unsafe_blit sep 0 dst (pos + length hd) seplen;
+    unsafe_blits dst (pos + length hd + seplen) sep seplen tl
 
-external is_printable: char[`a] <[`b]-> bool[true:Pre;false:Pre;`c]
-  = "is_printable" ;;
-external char_code: char[`a] <[`b]-> int[_] = "%identity" ;;
-external char_chr: int[`a] <[`b]-> char[_] = "%identity" ;;
+let concat sep = function
+    [] -> ""
+  | l -> let seplen = length sep in bts @@
+          unsafe_blits 
+            (B.create (sum_lengths 0 seplen l))
+            0 sep seplen l
 
-let escaped s =
-  let n = ref 0 in
-    for i = 0 to length s - 1 do
-      n := !n +
-        (match unsafe_get s i with
-           '"' | '\\' | '\n' | '\t' -> 2
-          | c -> if is_printable c then 1 else 4)
-    done;
-    if !n = length s then s else begin
-      let s' = create !n in
-        n := 0;
-        for i = 0 to length s - 1 do
-          begin
-            match unsafe_get s i with
-              ('"' | '\\') as c ->
-                unsafe_set s' !n '\\'; incr n; unsafe_set s' !n c
-            | '\n' ->
-                unsafe_set s' !n '\\'; incr n; unsafe_set s' !n 'n'
-            | '\t' ->
-                unsafe_set s' !n '\\'; incr n; unsafe_set s' !n 't'
-            | c ->
-                if is_printable c then
-                  unsafe_set s' !n c
-                else begin
-                  let a = char_code c in
-                  unsafe_set s' !n '\\';
-                  incr n;
-                  unsafe_set s' !n (char_chr (48 + a / 100));
-                  incr n;
-                  unsafe_set s' !n (char_chr (48 + (a / 10) mod 10));
-                  incr n;
-                  unsafe_set s' !n (char_chr (48 + a mod 10))
-                end
-          end;
-          incr n
-        done;
-        s'
-      end ;;
+(* duplicated in bytes.ml *)
+let iter f s =
+  for i = 0 to length s - 1 do f (unsafe_get s i) done
+
+(* duplicated in bytes.ml *)
+let iteri f s =
+  for i = 0 to length s - 1 do f i (unsafe_get s i) done
 
 let map f s =
-  let l = length s in
-  if l = 0 then s else begin
-    let r = create l in
-    for i = 0 to l - 1 do unsafe_set r i (f(unsafe_get s i)) done;
-    r
-  end ;;
+  B.map f (bos s) |> bts
+let mapi f s =
+  B.mapi f (bos s) |> bts
 
-let uppercase s = map Char.uppercase s ;;
-let lowercase s = map Char.lowercase s ;;
+(* Beware: we cannot use B.trim or B.escape because they always make a
+   copy, but String.mli spells out some cases where we are not allowed
+   to make a copy. *)
 
-let apply1 f s =
-  if length s = 0 then s else begin
-    let r = copy s in
-    unsafe_set r 0 (f(unsafe_get s 0));
-    r
-  end ;;
+let is_space = function
+  | ' ' | '\012' | '\n' | '\r' | '\t' -> true
+  | _ -> false
 
-let capitalize s = apply1 Char.uppercase s ;;
-let uncapitalize s = apply1 Char.lowercase s ;;
+let trim s =
+  if s = "" then s
+  else if is_space (unsafe_get s 0) || is_space (unsafe_get s (length s - 1))
+    then bts (B.trim (bos s))
+  else s
 
-let rec index_rec s i c =
-  if i >= length s then raise Not_found
-  else if unsafe_get s i = c then i
-  else index_rec s (i+1) c ;;
+let escaped s =
+  let rec needs_escape i =
+    if i >= length s then false else
+      match unsafe_get s i with
+      | '\"' | '\\' | '\n' | '\t' | '\r' | '\b' -> true
+      | ' ' .. '~' -> needs_escape (i+1)
+      | _ -> true
+  in
+  if needs_escape 0 then
+    bts (B.escaped (bos s))
+  else
+    s
 
-let index s c = index_rec s 0 c ;;
+(* duplicated in bytes.ml *)
+let rec index_rec s lim i c =
+  if i >= lim then raise Not_found else
+  if unsafe_get s i = c then i else index_rec s lim (i + 1) c
 
+(* duplicated in bytes.ml *)
+let index s c = index_rec s (length s) 0 c
+
+(* duplicated in bytes.ml *)
 let index_from s i c =
-  if i < 0 || i >= length s
-  then invalid_arg "String.index_from"
-  else index_rec s i c ;;
+  let l = length s in
+  if i < 0 || i > l then invalid_arg "String.index_from / Bytes.index_from" else
+    index_rec s l i c
 
+(* duplicated in bytes.ml *)
 let rec rindex_rec s i c =
-  if i < 0 then raise Not_found
-  else if unsafe_get s i = c then i
-  else rindex_rec s (i-1) c ;;
+  if i < 0 then raise Not_found else
+  if unsafe_get s i = c then i else rindex_rec s (i - 1) c
 
-let rindex s c = rindex_rec s (length s - 1) c ;;
+(* duplicated in bytes.ml *)
+let rindex s c = rindex_rec s (length s - 1) c
 
+(* duplicated in bytes.ml *)
 let rindex_from s i c =
-  if i < 0 || i >= length s
-  then invalid_arg "String.rindex_from"
-  else rindex_rec s i c ;;
+  if i < -1 || i >= length s then
+    invalid_arg "String.rindex_from / Bytes.rindex_from"
+  else
+    rindex_rec s i c
 
+(* duplicated in bytes.ml *)
+let contains_from s i c =
+  let l = length s in
+  if i < 0 || i > l then
+    invalid_arg "String.contains_from / Bytes.contains_from"
+  else
+    try ignore (index_rec s l i c); true with Not_found -> false
+
+(* duplicated in bytes.ml *)
+let contains s c = contains_from s 0 c
+
+(* duplicated in bytes.ml *)
+let rcontains_from s i c =
+  if i < 0 || i >= length s then
+    invalid_arg "String.rcontains_from / Bytes.rcontains_from"
+  else
+    try ignore (rindex_rec s i c); true with Not_found -> false
+
+let uppercase_ascii s =
+  B.uppercase_ascii (bos s) |> bts
+let lowercase_ascii s =
+  B.lowercase_ascii (bos s) |> bts
+let capitalize_ascii s =
+  B.capitalize_ascii (bos s) |> bts
+let uncapitalize_ascii s =
+  B.uncapitalize_ascii (bos s) |> bts
+
+type t = string
+
+let compare (x: t) (y: t) = Pervasives.compare x y
+external equal : string -> string -> bool = "caml_string_equal"
+
+let split_on_char sep s =
+  let r = ref [] in
+  let j = ref (length s) in
+  for i = length s - 1 downto 0 do
+    if unsafe_get s i = sep then begin
+      r := sub s (i + 1) (!j - i - 1) :: !r;
+      j := i
+    end
+  done;
+  sub s 0 !j :: !r
+
+(* Deprecated functions implemented via other deprecated functions *)
+[@@@ocaml.warning "-3"]
+let uppercase s =
+  B.uppercase (bos s) |> bts
+let lowercase s =
+  B.lowercase (bos s) |> bts
+let capitalize s =
+  B.capitalize (bos s) |> bts
+let uncapitalize s =
+  B.uncapitalize (bos s) |> bts
